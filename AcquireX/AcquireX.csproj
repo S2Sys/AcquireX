@@ -8,12 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Core\JsonDataFetcher.cs" />
-    <Compile Remove="Core\OAuthClient.cs" />
+    <Compile Remove="Core\**" />
+    <EmbeddedResource Remove="Core\**" />
+    <None Remove="Core\**" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AcquireX.Core\AcquireX.Core.csproj" />
   </ItemGroup>
 
 </Project>
