@@ -1,36 +1,43 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using AcquireX.Core.Contracts;
 using AcquireX.Core.Enum;
+using AcquireX.Core.Model;
 using AcquireX.Core.Services;
-using AcquireX.Core.Utility;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
+using IHost host = Host.CreateDefaultBuilder(args).Build();
 
-string clientId = "candidate1";
-string clientSecret = "X01BvqCjkbFpsw5d1gAChjg1RrQc3c2q";
-string tokenEndpoint = "https://auth.dkhardware.com/realms/ctesting/protocol/openid-connect/token";
-string rsHughesServiceUrl = "https://dkh-c-testing-api.staging.dkhdev.com/products/json";
-string bannerServiceUrl = "https://dkh-c-testing-api.staging.dkhdev.com/products/xml";
+IConfiguration config = host.Services.GetRequiredService<IConfiguration>();
+
+ 
+
+string clientId = config["OAuth:ClientId"]; 
+string clientSecret = config["OAuth:Secret"]; 
+string tokenEndpoint = config["OAuth:Endpoint"]; 
+string rsHughesServiceUrl = config["ServicesEndpoints:Hughes"]; 
+string bannerServiceUrl = config["ServicesEndpoints:Banner"]; 
 
 var oauthService = OAuthService.GetInstance(clientId, clientSecret, tokenEndpoint);
 var dataSourceFactory = new DataSourceFactory(oauthService);
 
-var bannerDataSource = dataSourceFactory.CreateDataSource(DataSourceType.Banner, bannerServiceUrl);
-var bannerProducts = await bannerDataSource.GetProductsAsync();
+var dataSource = dataSourceFactory.CreateDataSource(DataSourceType.Banner, bannerServiceUrl);
+var bannerProducts = await dataSource.GetProductsAsync();
 
-var rsHughesDataSource = dataSourceFactory.CreateDataSource(DataSourceType.RSHughes, rsHughesServiceUrl);
-var rsHughesProducts = await rsHughesDataSource.GetProductsAsync();
- 
+dataSource = dataSourceFactory.CreateDataSource(DataSourceType.RSHughes, rsHughesServiceUrl);
+var rsHughesProducts = await dataSource.GetProductsAsync();
+ProductMatcherService matcher = new ProductMatcherService();
 
-UPCProductMatcher matcher = new UPCProductMatcher();
+var products = matcher.Fetch(rsHughesProducts, bannerProducts);
+if (products.Any())
+    foreach (var product in products)
+    {
 
-if (rsHughesProducts.Any() && bannerProducts.Any())
+        Console.WriteLine($"{product.Upc} {product.ItemCode}");
+    }
+else
 {
-    var matchedProd = matcher.Match(rsHughesProducts, bannerProducts);
-    if (matchedProd.Any())
-        foreach (var product in matchedProd)
-        {
-
-            Console.WriteLine($"{product.Upc} {product.ItemCode}");
-        }
+    Console.WriteLine($"No product found");
 }
 Console.ReadLine();
